@@ -24,7 +24,7 @@ void chronAmp()  {
 
     PWMWrite(signal_pin,pwmRes,dFnl,pwmClock);
     
-    while(inTime <= readTime){    
+    while(inTime <= readTime && runState == true){    
 //    while(time2 <= time1+readTime){    
     Iread = 0;
 //    time2 = micros();
@@ -43,10 +43,18 @@ void chronAmp()  {
     Serial.println(iMax);//    Serial.println("");
  //   Serial.println("");
     delay(runDelay);
+
+    // If "Stop" is pressed in GUI, stop the program 
+    if(Serial.available()>0) {
+    sRead = Serial.read();
+    if (sRead == '%') {
+      runState = false;
+    }
+  }
     }
  if(mode == chronoAmp2) {
    PWMWrite(signal_pin,pwmRes,dInit,pwmClock);  // step back to initial voltage
-     while(inTime <= readTime*2){    
+     while(inTime <= readTime*2 && runState == true){    
        Iread = 0;     
     time2 = millis();
     inTime = time2-time1;  //inTime is in ms, time1 and time2 are micros      
@@ -58,6 +66,14 @@ void chronAmp()  {
     Serial.println(iMax);//    Serial.println("");
     delay(runDelay);
     }
+
+    // If "Stop" is pressed in GUI, stop the program 
+    if(Serial.available()>0) {
+    sRead = Serial.read();
+    if (sRead == '%') {
+      runState = false;
+    }
+  }
  }
   
   openCircuit();    // go to open circuit
