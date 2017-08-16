@@ -1,4 +1,4 @@
-//Main tab / StellarisWheeStatE_7 sketch
+//Main tab / WheeStatE_7d sketch
 //  
 // pins setup for spi module 0
 // simultaneous pwm outputs on pins 2.1, 2.4 and 1.6 
@@ -66,6 +66,7 @@ int chronoAmp = 5;    // chronoamperometry
 int chronoAmp2 = 6;    // two step chronoamperometry
 int normalPulse = 7;  // normal pulse voltammetry
 int multiCV = 8;      // multiple loop CV
+int cySq = 9;         // cyclic square wave
 int mode;
 
 ///////////// current gain parameters ///////////////////
@@ -99,6 +100,7 @@ unsigned int runDelay;                // sec between runs for data logging
 #define reset_pin PF_2           //spi clock on pin 1.5, mosi on pin 1.7
 #define stir_pin PF_1           // stirring motor attached to pin PB_2 (19)? RED LED on PF_1
 #define ovrVolt A10             // new for WheeStat7
+#define kill PB_2               // kill switch, turns voltage of counter electrode to 1.65 v
 
 /////////////// data read parameters /////////////////
 long inVolt = 0;                 // voltage read
@@ -113,7 +115,13 @@ unsigned int param =0;
 ////////////////  current range scale bar parameters ///////////////////////  
   float iMin;    // value for minimum of current range bar, added July 7, 14
   float iMax;
-  
+  //// stuff from CV to use in cyclic square wave
+  int nThru = 1;  // number of times through ramp or diff pulse (2 for cyclic, etc)
+  boolean slopeDir = false;   // initially slope is assumed negative
+  boolean evenOdd = false;    // keeps track of where to start
+ boolean stepDir = HIGH; 
+ boolean downDir = LOW;
+  int start;  // starting voltage for cyclic experiments
 /****************************************************************************/
 void setup() {
   pinMode (signal_pin,OUTPUT);      // set pin 2.1 for output   
@@ -124,10 +132,12 @@ void setup() {
   pinMode (Iread_pin,INPUT);
   pinMode (ovrVolt,INPUT);
   pinMode (stir_pin,OUTPUT);
+  pinMode (kill, OUTPUT);
   halfRes = pwmRes/2;        // half scale for setting reference voltage, offset
   PWMWrite(offset_pin,330,165,pwmClock);  // sets current offset to VCC/2
   PWMWrite(ref_pin,330,165,pwmClock);     // set reference voltage to VCC/2
-PWMWrite(signal_pin,330,165,pwmClock);     // set signal voltage to VCC/2
+PWMWrite(signal_pin,330,165,pwmClock);
+  digitalWrite(kill, HIGH);// set signal voltage to VCC/2
   Serial.begin(9600);             // begin serial comm. at 9600 baud
 }
 
@@ -139,13 +149,13 @@ void loop (){
   setupDigiPot();               
 
    PWMWrite(offset_pin,pwmRes,halfRes,pwmClock);  // sets current offset, changed from dOff to halfRes
-
+   digitalWrite(kill,LOW);   // enable counter electrode activity
 ///////////  Ramp and CV experiments  ////////////////////
   if (mode == RAMP || mode == CV || mode == multiCV) {
     ramp();  
     stop(3);   // executes stop command and 3 following zero transmits
    }
-  if (mode == diff_Pulse) {
+  if (mode == diff_Pulse|| mode == cySq) {
       digitalWrite(pulse_pin,LOW); 
       PWMWrite(signal_pin,pwmRes,dInit,pwmClock);  // set signal voltage to initial value
       delay(delay1*1000);
@@ -165,6 +175,7 @@ if (mode == ASV || mode == logASV) {
         Serial.print("55555,");  
         Serial.print(q);  
         Serial.println(",0,0,0");
+         openCircuit();
         delay (runDelay*1000);          // run delay at open circuit
   
         cleanDepos();
@@ -179,8 +190,6 @@ if (mode == ASV || mode == logASV) {
  /////////////// normal pulse experiment ///////////////////
   if (mode == normalPulse) {            // status check in normPulse() routine
     digitalWrite(pulse_pin,LOW);              // set pulse pin to low
-//    PWMWrite(signal_pin,pwmRes,dFnl,pwmClock);  // electrode cleaning step
-//    delay(2000);
     normPulse(); 
         stop(3);
   }
@@ -193,6 +202,7 @@ if (mode == ASV || mode == logASV) {
     chronAmp();     //changed
     stop(3);
   }
+     openCircuit();    // go to open circuit
 }
 
 void stop(int s) {
