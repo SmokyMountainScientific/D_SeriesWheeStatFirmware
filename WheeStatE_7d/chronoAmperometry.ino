@@ -1,47 +1,29 @@
-//  chronoAmperometry tab / WheeStat5_4 sketch in publicEnergiaSketches folder
+//  chronoAmperometry tab / WheeStatE_7d on GitHub SmokyMountainScientific
 //  chronoamperometry and two step chronoamperometry experiments
-//     both working as of May 20, 2014
+
 
 void chronAmp()  {
-//  Serial.print(rdTime);
-  //Serial.print(",");
-  //Serial.println(readTime);
   ////////// ////////////////////////////////////////////////  
   PWMWrite(signal_pin,pwmRes,dInit,pwmClock);  // set signal voltage to 512 + 1/2 Vinit
 
 ///// from Ben's old stuff ////
   int Iread = 0;
   long inTime = 0;
-//  readTime = readTime*1000;        // micros durring read 
-//  fnlV_time = fnlV_time*1000; 
-//  long time1 = micros();
-
-  long time2;             // = time1;
-//  readTime = 50000;              
+  long time2;                 
   delay(delay1*1000);
   long time1 = millis();
   ///////// Step and read ////////////////////////////////////////////////
-
-    PWMWrite(signal_pin,pwmRes,dFnl,pwmClock);
-    
-    while(inTime <= readTime && runState == true){    
-//    while(time2 <= time1+readTime){    
+    PWMWrite(signal_pin,pwmRes,dFnl,pwmClock);    
+    while(inTime <= readTime && runState == true){     
     Iread = 0;
-//    time2 = micros();
-//    inTime = (time2-time1)/1000;  //inTime is in ms, time1 and time2 are micros      
     time2 = millis();
     inTime = time2-time1;  //inTime is in ms, time1 and time2 are micros      
-//    Serial.print("4 ,");          // not working here
     Serial.print(inTime);
-    Serial.print(",");          // working here
-  //  Serial.println(Iread2,4);  // holdover from Ben's old stuff
- //   time2 = micros();    
-//    Serial.print("1 ,");
+    Serial.print(",");             
     readCurrent(true);
     Serial.print(iMin);
     Serial.print(",");
-    Serial.println(iMax);//    Serial.println("");
- //   Serial.println("");
+    Serial.println(iMax);
     delay(runDelay);
 
     // If "Stop" is pressed in GUI, stop the program 
